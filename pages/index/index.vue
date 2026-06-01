@@ -513,6 +513,30 @@ function reprocessImage(index) {
   })
 }
 
+function deleteTempFile(filePath) {
+  if (!filePath) return
+  
+  // 删除临时文件
+  uni.getSavedFileInfo({
+    filePath: filePath,
+    success: () => {
+      uni.removeSavedFile({ filePath: filePath })
+    },
+    fail: () => {
+      // 如果不是已保存的文件，尝试删除临时文件
+      // #ifdef APP-PLUS
+      plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
+        entry.remove(() => {
+          console.log('临时文件已删除:', filePath)
+        }, (err) => {
+          console.error('删除临时文件失败:', err)
+        })
+      })
+      // #endif
+    }
+  })
+}
+
 function refreshAllImages() {
   if (!images.value.length || processing.value) {
     return
@@ -520,14 +544,7 @@ function refreshAllImages() {
 
   // 删除之前的预览缓存文件
   previewImages.value.forEach(path => {
-    if (path && path.startsWith('file://')) {
-      uni.getSavedFileInfo({
-        filePath: path,
-        success: () => {
-          uni.removeSavedFile({ filePath: path })
-        }
-      })
-    }
+    deleteTempFile(path)
   })
 
   previewImages.value = []
@@ -568,14 +585,7 @@ function saveAllImages() {
 
   // 清理之前的 resultImages 缓存
   resultImages.value.forEach(path => {
-    if (path && path.startsWith('file://')) {
-      uni.getSavedFileInfo({
-        filePath: path,
-        success: () => {
-          uni.removeSavedFile({ filePath: path })
-        }
-      })
-    }
+    deleteTempFile(path)
   })
 
   resultImages.value = [...previewImages.value]
@@ -603,14 +613,7 @@ function saveAllImages() {
 function releaseResources() {
   // 删除预览缓存文件
   previewImages.value.forEach(path => {
-    if (path && path.startsWith('file://')) {
-      uni.getSavedFileInfo({
-        filePath: path,
-        success: () => {
-          uni.removeSavedFile({ filePath: path })
-        }
-      })
-    }
+    deleteTempFile(path)
   })
   
   // 清空数据
@@ -623,6 +626,11 @@ function releaseResources() {
 }
 
 function clearPreview() {
+  // 删除预览缓存文件
+  previewImages.value.forEach(path => {
+    deleteTempFile(path)
+  })
+  
   previewImages.value = []
   uni.showToast({ title: '预览已清除', icon: 'none' })
 }

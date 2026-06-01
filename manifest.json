@@ -29,9 +29,7 @@
                     "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />"
                 ]
             },
-            "ios" : {
-                "dSYMs" : false
-            },
+            "ios" : {},
             "sdkConfigs" : {
                 "geolocation" : {
                     "system" : {
@@ -72,7 +70,7 @@
                 }
             },
             "splashscreen" : {
-                "androidStyle" : "default",
+                "androidStyle" : "common",
                 "android" : {
                     "hdpi" : "C:/Users/Administrator/Pictures/res/drawable-xhdpi/acc2.9.png",
                     "xhdpi" : "C:/Users/Administrator/Pictures/res/drawable-xhdpi/acc2.9.png",
