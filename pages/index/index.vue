@@ -143,18 +143,23 @@
       </view>
     </view>
 
-    <view class="card" v-if="resultImages.length">
-      <view class="section-title">处理结果（点击预览）</view>
+    <view class="card" v-if="previewImages.length">
+      <view class="section-title">处理结果预览（双击可重新处理）</view>
       <view class="thumb-list">
         <view
-          v-for="(item, index) in resultImages"
+          v-for="(item, index) in previewImages"
           :key="index"
           class="thumb-wrap"
-          @click="previewResult(item)"
+          @click="handleImageClick(item, index)"
         >
           <image :src="item" class="thumb" mode="aspectFill" />
           <view class="thumb-index">{{ index + 1 }}</view>
         </view>
+      </view>
+      <view class="preview-actions">
+        <button class="btn-save" @click="saveAllImages">💾 保存</button>
+        <button class="btn-refresh" @click="refreshAllImages">🔄 刷新</button>
+        <button class="btn-clear" @click="clearPreview">❌ 清除</button>
       </view>
     </view>
 
@@ -183,7 +188,10 @@ const location = ref('')
 const randomTime = ref(false)
 const processing = ref(false)
 const resultImages = ref([])
+const previewImages = ref([])
 const showHistory = ref(false)
+const lastClickTime = ref(0)
+const lastClickIndex = ref(-1)
 
 const fontScale = ref(45)
 const fontNames = ['sans-serif', 'serif', 'monospace', 'Arial', 'Helvetica', 'Georgia', 'Verdana', 'Tahoma', 'Times New Roman', 'Courier New', 'Impact', 'Comic Sans MS']
@@ -385,7 +393,7 @@ function chooseImages() {
   uni.chooseImage({
     count: 9,
     sizeType: ['original'],
-    sourceType: ['album', 'camera'],
+    sourceType: ['album'],
     success: (res) => {
       images.value = [...images.value, ...res.tempFilePaths]
       selectedIndexes.value = []
@@ -456,7 +464,7 @@ function batchWatermark() {
     return
   }
 
-  resultImages.value = []
+  previewImages.value = []
   processing.value = true
   const list = [...images.value]
   let current = 0
@@ -465,7 +473,7 @@ function batchWatermark() {
     if (current >= list.length) {
       processing.value = false
       uni.hideLoading()
-      uni.showToast({ title: '全部处理完成', icon: 'success' })
+      uni.showToast({ title: '预览生成完成，请确认后保存', icon: 'success' })
       return
     }
 
@@ -476,7 +484,7 @@ function batchWatermark() {
 
     processImage(list[current], current, (resultPath) => {
       if (resultPath) {
-        resultImages.value.push(resultPath)
+        previewImages.value.push(resultPath)
       }
       current++
       next()
@@ -484,6 +492,90 @@ function batchWatermark() {
   }
 
   next()
+}
+
+function reprocessImage(index) {
+  if (processing.value || index < 0 || index >= images.value.length) {
+    return
+  }
+
+  uni.showLoading({
+    title: `重新处理第 ${index + 1} 张`,
+    mask: true
+  })
+
+  processImage(images.value[index], index, (resultPath) => {
+    uni.hideLoading()
+    if (resultPath) {
+      previewImages.value[index] = resultPath
+      uni.showToast({ title: '重新处理完成', icon: 'success' })
+    }
+  })
+}
+
+function refreshAllImages() {
+  if (!images.value.length || processing.value) {
+    return
+  }
+
+  previewImages.value = []
+  processing.value = true
+  const list = [...images.value]
+  let current = 0
+
+  function next() {
+    if (current >= list.length) {
+      processing.value = false
+      uni.hideLoading()
+      uni.showToast({ title: '全部刷新完成', icon: 'success' })
+      return
+    }
+
+    uni.showLoading({
+      title: `正在刷新 ${current + 1}/${list.length}`,
+      mask: true
+    })
+
+    processImage(list[current], current, (resultPath) => {
+      if (resultPath) {
+        previewImages.value.push(resultPath)
+      }
+      current++
+      next()
+    })
+  }
+
+  next()
+}
+
+function saveAllImages() {
+  if (!previewImages.value.length) {
+    uni.showToast({ title: '没有可保存的图片', icon: 'none' })
+    return
+  }
+
+  resultImages.value = [...previewImages.value]
+  let savedCount = 0
+
+  uni.showLoading({
+    title: '正在保存...',
+    mask: true
+  })
+
+  previewImages.value.forEach((path, index) => {
+    saveFile(path, index, () => {
+      savedCount++
+      if (savedCount >= previewImages.value.length) {
+        uni.hideLoading()
+        uni.showToast({ title: '全部保存完成', icon: 'success' })
+      }
+    })
+  })
+}
+
+function clearPreview() {
+  previewImages.value = []
+  uni.showToast({ title: '预览已清除', icon: 'none' })
 }
 
 function processImage(src, index, callback) {
@@ -611,10 +703,36 @@ function saveFile(filePath, index, callback) {
   // #endif
 }
 
+function handleImageClick(path, index) {
+  const currentTime = Date.now()
+  const timeDiff = currentTime - lastClickTime.value
+
+  if (timeDiff < 300 && lastClickIndex.value === index) {
+    lastClickTime.value = 0
+    lastClickIndex.value = -1
+    reprocessImage(index)
+  } else {
+    lastClickTime.value = currentTime
+    lastClickIndex.value = index
+    setTimeout(() => {
+      if (lastClickTime.value === currentTime) {
+        previewResult(path)
+      }
+    }, 300)
+  }
+}
+
 function previewResult(path) {
   uni.previewImage({
-    urls: resultImages.value,
-    current: path
+    urls: previewImages.value,
+    current: path,
+    success: () => {
+      console.log('预览成功')
+    },
+    fail: (err) => {
+      console.error('预览失败', err)
+      uni.showToast({ title: '预览失败，请重试', icon: 'none' })
+    }
   })
 }
 
@@ -1092,5 +1210,41 @@ onMounted(() => {
 .platform-tip text {
   font-size: 26rpx;
   color: rgba(255,255,255,0.9);
+}
+
+.preview-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.preview-actions button {
+  flex: 1;
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  font-weight: 500;
+  text-align: center;
+}
+
+.preview-actions button::after {
+  border: none;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.btn-refresh {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: #fff;
+}
+
+.btn-clear {
+  background: #f0f0f0;
+  color: #666;
 }
 </style>
