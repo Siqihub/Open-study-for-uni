@@ -464,7 +464,9 @@ function batchWatermark() {
     return
   }
 
+  // 清空之前的结果数组，避免旧数据干扰
   previewImages.value = []
+  resultImages.value = []
   processing.value = true
   const list = [...images.value]
   let current = 0
@@ -547,7 +549,9 @@ function refreshAllImages() {
     deleteTempFile(path)
   })
 
+  // 清空结果数组，确保只保留最新一组
   previewImages.value = []
+  resultImages.value = []
   processing.value = true
   const list = [...images.value]
   let current = 0
@@ -588,6 +592,7 @@ function saveAllImages() {
     deleteTempFile(path)
   })
 
+  // 只保存当前最新的预览图片
   resultImages.value = [...previewImages.value]
   let savedCount = 0
 
@@ -596,14 +601,15 @@ function saveAllImages() {
     mask: true
   })
 
-  previewImages.value.forEach((path, index) => {
+  // 只遍历当前最新的 resultImages，避免保存旧数据
+  resultImages.value.forEach((path, index) => {
     saveFile(path, index, () => {
       savedCount++
-      if (savedCount >= previewImages.value.length) {
+      if (savedCount >= resultImages.value.length) {
         uni.hideLoading()
         uni.showToast({ title: '全部保存完成', icon: 'success' })
         
-        // 保存完成后释放资源
+        // 保存完成后彻底清空所有结果数组
         releaseResources()
       }
     })
@@ -616,8 +622,14 @@ function releaseResources() {
     deleteTempFile(path)
   })
   
-  // 清空数据
+  // 删除 resultImages 缓存文件
+  resultImages.value.forEach(path => {
+    deleteTempFile(path)
+  })
+  
+  // 彻底清空所有结果数组
   previewImages.value = []
+  resultImages.value = []
   images.value = []
   selectedIndexes.value = []
   isMultiSelectMode.value = false
