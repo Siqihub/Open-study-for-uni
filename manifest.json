@@ -29,7 +29,9 @@
                     "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />"
                 ]
             },
-            "ios" : {},
+            "ios" : {
+                "dSYMs" : false
+            },
             "sdkConfigs" : {
                 "geolocation" : {
                     "system" : {
@@ -72,9 +74,9 @@
             "splashscreen" : {
                 "androidStyle" : "default",
                 "android" : {
-                    "hdpi" : "C:/Users/Administrator/Pictures/acc2.png",
-                    "xhdpi" : "C:/Users/Administrator/Pictures/acc2.png",
-                    "xxhdpi" : "C:/Users/Administrator/Pictures/acc2.png"
+                    "hdpi" : "C:/Users/Administrator/Pictures/res/drawable-xhdpi/acc2.9.png",
+                    "xhdpi" : "C:/Users/Administrator/Pictures/res/drawable-xhdpi/acc2.9.png",
+                    "xxhdpi" : "C:/Users/Administrator/Pictures/res/drawable-xxhdpi/acc2.9.png"
                 }
             }
         }
