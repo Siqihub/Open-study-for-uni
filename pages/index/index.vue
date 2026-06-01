@@ -518,6 +518,18 @@ function refreshAllImages() {
     return
   }
 
+  // 删除之前的预览缓存文件
+  previewImages.value.forEach(path => {
+    if (path && path.startsWith('file://')) {
+      uni.getSavedFileInfo({
+        filePath: path,
+        success: () => {
+          uni.removeSavedFile({ filePath: path })
+        }
+      })
+    }
+  })
+
   previewImages.value = []
   processing.value = true
   const list = [...images.value]
@@ -554,6 +566,18 @@ function saveAllImages() {
     return
   }
 
+  // 清理之前的 resultImages 缓存
+  resultImages.value.forEach(path => {
+    if (path && path.startsWith('file://')) {
+      uni.getSavedFileInfo({
+        filePath: path,
+        success: () => {
+          uni.removeSavedFile({ filePath: path })
+        }
+      })
+    }
+  })
+
   resultImages.value = [...previewImages.value]
   let savedCount = 0
 
@@ -568,9 +592,34 @@ function saveAllImages() {
       if (savedCount >= previewImages.value.length) {
         uni.hideLoading()
         uni.showToast({ title: '全部保存完成', icon: 'success' })
+        
+        // 保存完成后释放资源
+        releaseResources()
       }
     })
   })
+}
+
+function releaseResources() {
+  // 删除预览缓存文件
+  previewImages.value.forEach(path => {
+    if (path && path.startsWith('file://')) {
+      uni.getSavedFileInfo({
+        filePath: path,
+        success: () => {
+          uni.removeSavedFile({ filePath: path })
+        }
+      })
+    }
+  })
+  
+  // 清空数据
+  previewImages.value = []
+  images.value = []
+  selectedIndexes.value = []
+  isMultiSelectMode.value = false
+  
+  uni.showToast({ title: '已释放空间', icon: 'none' })
 }
 
 function clearPreview() {
