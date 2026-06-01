@@ -518,25 +518,16 @@ function reprocessImage(index) {
 function deleteTempFile(filePath) {
   if (!filePath) return
   
-  // 删除临时文件
-  uni.getSavedFileInfo({
-    filePath: filePath,
-    success: () => {
-      uni.removeSavedFile({ filePath: filePath })
-    },
-    fail: () => {
-      // 如果不是已保存的文件，尝试删除临时文件
-      // #ifdef APP-PLUS
-      plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
-        entry.remove(() => {
-          console.log('临时文件已删除:', filePath)
-        }, (err) => {
-          console.error('删除临时文件失败:', err)
-        })
-      })
-      // #endif
-    }
+  // 只删除 App 内部的临时缓存文件，不操作相册里的物理文件
+  // #ifdef APP-PLUS
+  plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
+    entry.remove(() => {
+      console.log('临时文件已删除:', filePath)
+    }, (err) => {
+      console.error('删除临时文件失败:', err)
+    })
   })
+  // #endif
 }
 
 function refreshAllImages() {
@@ -714,9 +705,8 @@ function processImage(src, index, callback) {
           quality: 0.9,
           success: (res) => {
             addToHistory(location.value)
-            saveFile(res.tempFilePath, index, () => {
-              if (callback) callback(res.tempFilePath)
-            })
+            // 预览阶段只返回临时文件路径，不保存到相册
+            if (callback) callback(res.tempFilePath)
           },
           fail: (err) => {
             console.error('canvas导出失败', err)
@@ -739,6 +729,7 @@ function saveFile(filePath, index, callback) {
   const filename = `watermark_${timestamp}_${index + 1}.jpg`
 
   // #ifdef APP-PLUS
+  // 只在点击保存按钮时，才将临时图片写入系统相册
   uni.saveImageToPhotosAlbum({
     filePath: filePath,
     success: () => {
