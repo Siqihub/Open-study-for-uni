@@ -29,7 +29,9 @@
                     "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />"
                 ]
             },
-            "ios" : {},
+            "ios" : {
+                "dSYMs" : false
+            },
             "sdkConfigs" : {
                 "geolocation" : {
                     "system" : {
